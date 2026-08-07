@@ -1,0 +1,982 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Document Review</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --line: #d8dee9;
+      --text: #1f2937;
+      --muted: #667085;
+      --accent: #0f766e;
+      --accent-soft: #e6fffb;
+      --error: #b42318;
+      --warning: #b54708;
+      --code: #111827;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+
+    button, select, textarea, input {
+      font: inherit;
+    }
+
+    .app {
+      height: 100vh;
+      display: grid;
+      grid-template-rows: 56px 1fr;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .brand {
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .doc-select {
+      min-width: 320px;
+      max-width: 520px;
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      padding: 0 10px;
+    }
+
+    .metric {
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .metric strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .layout {
+      min-height: 0;
+      height: 100%;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: minmax(420px, 48%) minmax(520px, 52%);
+    }
+
+    .pdf-pane {
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 42px 1fr;
+      border-right: 1px solid var(--line);
+      background: #e8edf5;
+    }
+
+    .pdf-toolbar,
+    .right-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .pdf-stage {
+      position: relative;
+      min-height: 0;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 12px;
+    }
+
+    .page-wrap {
+      position: relative;
+      width: min(100%, 920px);
+      max-height: 100%;
+      overflow: auto;
+      background: #fff;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+    }
+
+    .page-wrap.text-mode {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      max-height: 100%;
+      overflow: hidden;
+      box-shadow: none;
+      display: flex;
+    }
+
+    .pdf-page-image {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #fff;
+    }
+
+    .source-text {
+      flex: 1 1 auto;
+      margin: 0;
+      width: 100%;
+      height: auto;
+      min-height: 0;
+      padding: 10px 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      overflow-y: auto;
+      overflow-x: auto;
+      overscroll-behavior: contain;
+      line-height: 1.6;
+      font-family: Consolas, "Microsoft YaHei", monospace;
+      font-size: 13px;
+    }
+
+    .source-line {
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr);
+      gap: 10px;
+      min-height: 22px;
+      padding: 0 14px 0 0;
+      border-left: 3px solid transparent;
+    }
+
+    .source-line.active {
+      border-left-color: var(--accent);
+      background: #fff7ed;
+    }
+
+    .source-line-number {
+      color: #98a2b3;
+      text-align: right;
+      user-select: none;
+    }
+
+    .source-line-code {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .bbox-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .bbox-box {
+      position: absolute;
+      border: 2px solid #2563eb;
+      background: rgba(37, 99, 235, 0.08);
+    }
+
+    .bbox-box.heading {
+      border-color: #dc2626;
+      background: rgba(220, 38, 38, 0.08);
+    }
+
+    .bbox-box.table {
+      border-color: #16a34a;
+      background: rgba(22, 163, 74, 0.08);
+    }
+
+    .bbox-box.image {
+      border-color: #ca8a04;
+      background: rgba(202, 138, 4, 0.10);
+    }
+
+    .bbox-label {
+      position: absolute;
+      left: -2px;
+      top: -22px;
+      max-width: 160px;
+      height: 20px;
+      padding: 1px 5px;
+      background: rgba(17, 24, 39, 0.86);
+      color: #fff;
+      font-size: 11px;
+      line-height: 18px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .right-pane {
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 42px 1fr;
+      background: var(--bg);
+    }
+
+    .tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tab,
+    .btn {
+      height: 30px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      padding: 0 10px;
+      cursor: pointer;
+    }
+
+    .tab.active,
+    .btn.primary {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: #075e54;
+      font-weight: 700;
+    }
+
+    .content-grid {
+      min-height: 0;
+      height: 100%;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 42% 58%;
+    }
+
+    .tree-pane,
+    .detail-pane {
+      min-width: 0;
+      min-height: 0;
+      overflow: auto;
+      padding: 12px;
+    }
+
+    .tree-pane {
+      border-right: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .detail-pane {
+      background: var(--bg);
+    }
+
+    .section-title {
+      margin: 0 0 8px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .tree-node {
+      margin: 2px 0;
+      padding: 5px 6px;
+      border-radius: 6px;
+      cursor: pointer;
+      line-height: 1.4;
+    }
+
+    .tree-node:hover,
+    .tree-node.selected {
+      background: var(--accent-soft);
+    }
+
+    .block-item {
+      margin: 6px 0;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .block-type {
+      display: inline-flex;
+      align-items: center;
+      height: 20px;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: #eef2f6;
+      color: #344054;
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .tree-children {
+      margin-left: 14px;
+      border-left: 1px solid #edf0f5;
+      padding-left: 8px;
+    }
+
+    .chunk-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .chunk-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    .chunk-item.selected {
+      border-color: var(--accent);
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+
+    .chunk-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .status {
+      border-radius: 999px;
+      padding: 2px 8px;
+      background: #eef2f6;
+      color: #344054;
+      white-space: nowrap;
+    }
+
+    .status.APPROVED { background: #dcfae6; color: #067647; }
+    .status.REJECTED { background: #fee4e2; color: var(--error); }
+    .status.MODIFIED { background: #fef0c7; color: var(--warning); }
+
+    .chunk-heading {
+      margin-bottom: 6px;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    .chunk-excerpt {
+      color: var(--muted);
+      line-height: 1.6;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .detail-block {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .detail-block h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 8px 10px;
+      align-items: start;
+    }
+
+    .field-label {
+      color: var(--muted);
+    }
+
+    .pre {
+      margin: 0;
+      padding: 10px;
+      border-radius: 6px;
+      background: #111827;
+      color: #f9fafb;
+      overflow: auto;
+      white-space: pre-wrap;
+      line-height: 1.5;
+      max-height: 360px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 160px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px;
+      line-height: 1.5;
+    }
+
+    .metadata-editor {
+      min-height: 220px;
+      font-family: Consolas, "Courier New", monospace;
+      color: var(--code);
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .quality-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .issue {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+    }
+
+    .issue.ERROR {
+      border-color: #fda29b;
+    }
+
+    .issue.WARNING {
+      border-color: #fedf89;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 980px) {
+      .layout,
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .pdf-pane {
+        min-height: 52vh;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .tree-pane {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">Document Review</div>
+      <select id="documentSelect" class="doc-select"></select>
+      <div class="metric">Chunks: <strong id="chunkCount">0</strong></div>
+      <div class="metric">Quality: <strong id="qualityScore">-</strong></div>
+      <div class="metric">Issues: <strong id="issueCount">0</strong></div>
+    </header>
+
+    <main class="layout">
+      <section class="pdf-pane">
+        <div class="pdf-toolbar">
+          <button class="btn" id="prevPage">上一页</button>
+          <input id="pageInput" type="number" min="1" value="1" style="width:72px;height:30px;border:1px solid var(--line);border-radius:6px;padding:0 8px;" />
+          <button class="btn" id="goPage">跳转</button>
+          <button class="btn" id="nextPage">下一页</button>
+          <button class="btn primary" id="toggleBbox">解析框</button>
+          <span class="muted" id="pdfHint"></span>
+        </div>
+        <div class="pdf-stage">
+          <div class="page-wrap" id="pageWrap">
+            <img id="pdfPageImage" class="pdf-page-image" alt="PDF page preview" />
+            <div id="sourceText" class="source-text hidden"></div>
+            <div id="bboxOverlay" class="bbox-overlay"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="right-pane">
+        <div class="right-toolbar">
+          <div class="tabs">
+            <button class="tab active" data-tab="tree">结构</button>
+            <button class="tab" data-tab="chunks">Chunks</button>
+            <button class="tab" data-tab="quality">质量</button>
+          </div>
+        </div>
+
+        <div class="content-grid">
+          <aside class="tree-pane">
+            <div id="treePanel">
+              <p class="section-title">Document Tree</p>
+              <div id="tree"></div>
+              <p class="section-title" style="margin-top:14px;">Page Blocks</p>
+              <div id="blockList"></div>
+            </div>
+            <div id="chunksPanel" class="hidden">
+              <p class="section-title">Chunk List</p>
+              <div id="chunkList" class="chunk-list"></div>
+            </div>
+            <div id="qualityPanel" class="hidden">
+              <p class="section-title">Quality Report</p>
+              <div id="qualityList" class="quality-list"></div>
+            </div>
+          </aside>
+
+          <section class="detail-pane">
+            <div class="detail-block">
+              <h3 id="detailTitle">请选择 Chunk</h3>
+              <div id="detailMeta" class="field-grid"></div>
+            </div>
+
+            <div class="detail-block">
+              <h3>正文</h3>
+              <textarea id="chunkText"></textarea>
+            </div>
+
+            <div class="detail-block">
+              <h3>Metadata</h3>
+              <textarea id="metadataText" class="metadata-editor"></textarea>
+              <textarea id="reviewComment" placeholder="审核备注" style="min-height:70px;margin-top:8px;"></textarea>
+              <div class="actions">
+                <button class="btn primary" data-status="APPROVED">确认正确</button>
+                <button class="btn" data-status="REJECTED">标记错误</button>
+                <button class="btn" data-status="MODIFIED">保存修改</button>
+                <button class="btn" data-status="PENDING">置为待审</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const state = {
+      documents: [],
+      review: null,
+      selectedChunkId: null,
+      page: 1,
+      activeTab: "tree",
+      showOverlay: true,
+      sourceTextCache: new Map(),
+      sourceTextRenderedId: null,
+      activeSourceLines: []
+    };
+
+    const el = (id) => document.getElementById(id);
+
+    async function api(path, options = {}) {
+      const response = await fetch(path, {
+        headers: { "Content-Type": "application/json" },
+        ...options
+      });
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(detail || response.statusText);
+      }
+      return response.json();
+    }
+
+    function textPreview(text, max = 220) {
+      const normalized = (text || "").replace(/\s+/g, " ").trim();
+      return normalized.length > max ? normalized.slice(0, max) + "..." : normalized;
+    }
+
+    function setPdfPage(page) {
+      if (!state.review) return;
+      if (!state.review.pdf_url) {
+        el("pageWrap").classList.add("text-mode");
+        el("pdfPageImage").classList.add("hidden");
+        el("sourceText").classList.remove("hidden");
+        el("pdfPageImage").removeAttribute("src");
+        loadSourceText().catch((error) => console.error(error));
+        renderOverlay();
+        renderBlockList();
+        return;
+      }
+      const pageCount = Number(state.review.page_count) || 1;
+      state.page = Math.min(pageCount, Math.max(1, Number(page) || 1));
+      el("pageInput").value = state.page;
+      el("pageWrap").classList.remove("text-mode");
+      el("sourceText").classList.add("hidden");
+      el("pdfPageImage").classList.remove("hidden");
+      clearSourceHighlight();
+      el("pdfPageImage").src = `/api/document-review/${encodeURIComponent(state.review.document_id)}/pages/${state.page}.png`;
+      renderOverlay();
+      renderBlockList();
+    }
+
+    async function loadSourceText() {
+      if (!state.review?.source_text_url) {
+        el("sourceText").textContent = "当前文档没有可预览的原始文本。";
+        return;
+      }
+      const cacheKey = state.review.document_id;
+      if (!state.sourceTextCache.has(cacheKey)) {
+        const response = await fetch(state.review.source_text_url);
+        if (!response.ok) throw new Error(await response.text());
+        state.sourceTextCache.set(cacheKey, await response.text());
+      }
+      if (state.sourceTextRenderedId !== cacheKey) {
+        renderSourceText(state.sourceTextCache.get(cacheKey));
+        state.sourceTextRenderedId = cacheKey;
+      }
+    }
+
+    function renderSourceText(text) {
+      const target = el("sourceText");
+      target.innerHTML = "";
+      clearSourceHighlight();
+      const lines = String(text || "").split(/\r?\n/);
+      lines.forEach((line, index) => {
+        const lineNumber = index + 1;
+        const row = document.createElement("div");
+        row.className = "source-line";
+        row.id = `source-line-${lineNumber}`;
+
+        const number = document.createElement("span");
+        number.className = "source-line-number";
+        number.textContent = lineNumber;
+
+        const code = document.createElement("span");
+        code.className = "source-line-code";
+        code.textContent = line || " ";
+
+        row.appendChild(number);
+        row.appendChild(code);
+        target.appendChild(row);
+      });
+    }
+
+    async function locateChunkSource(chunk) {
+      if (!state.review?.source_text_url) return;
+      await loadSourceText();
+
+      const metadata = chunk.metadata || {};
+      const start = Number(metadata.line_start);
+      const end = Number(metadata.line_end || metadata.line_start);
+      if (!start || start < 1) return;
+      highlightSourceLines(start, end || start);
+      const targetLine = document.getElementById(`source-line-${start}`);
+      if (targetLine) {
+        targetLine.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
+    }
+
+    function highlightSourceLines(start, end) {
+      clearSourceHighlight();
+      const safeStart = Math.max(1, start);
+      const safeEnd = Math.max(safeStart, end);
+      for (let line = safeStart; line <= safeEnd; line += 1) {
+        const row = document.getElementById(`source-line-${line}`);
+        if (!row) continue;
+        row.classList.add("active");
+        state.activeSourceLines.push(row);
+      }
+    }
+
+    function clearSourceHighlight() {
+      state.activeSourceLines.forEach((row) => row.classList.remove("active"));
+      state.activeSourceLines = [];
+    }
+
+    function selectChunk(chunkId) {
+      const chunk = (state.review?.chunks || []).find((item) => item.chunk_id === chunkId);
+      if (!chunk) return;
+      state.selectedChunkId = chunkId;
+      setPdfPage(chunk.metadata.page_number || 1);
+      renderChunkDetail(chunk);
+      renderChunkList();
+      locateChunkSource(chunk).catch((error) => console.error(error));
+      document.querySelectorAll(".tree-node").forEach((node) => {
+        node.classList.toggle("selected", node.dataset.chunkId === chunkId);
+      });
+    }
+
+    function renderTreeNode(node, target) {
+      const item = document.createElement("div");
+      item.className = "tree-node";
+      item.textContent = node.label;
+      if (node.chunk_id) item.dataset.chunkId = node.chunk_id;
+      item.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (node.chunk_id) {
+          selectChunk(node.chunk_id);
+        } else if (node.page_number) {
+          setPdfPage(node.page_number);
+        }
+      });
+      target.appendChild(item);
+
+      if (node.children && node.children.length) {
+        const children = document.createElement("div");
+        children.className = "tree-children";
+        target.appendChild(children);
+        node.children.forEach((child) => renderTreeNode(child, children));
+      }
+    }
+
+    function renderTree() {
+      const tree = el("tree");
+      tree.innerHTML = "";
+      if (state.review?.document_tree) renderTreeNode(state.review.document_tree, tree);
+    }
+
+    function blocksForCurrentPage() {
+      const page = (state.review?.pages || []).find((item) => item.page_number === state.page);
+      return page ? page.blocks || [] : [];
+    }
+
+    function renderBlockList() {
+      const target = el("blockList");
+      if (!target) return;
+      target.innerHTML = "";
+      blocksForCurrentPage().forEach((block) => {
+        const item = document.createElement("div");
+        item.className = "block-item";
+        item.innerHTML = `
+          <span class="block-type">${block.type}${block.level ? " L" + block.level : ""}</span>
+          <div>${textPreview(block.content, 140)}</div>
+          <div class="muted">bbox: ${block.bbox ? block.bbox.join(", ") : "-"}</div>
+        `;
+        target.appendChild(item);
+      });
+    }
+
+    function renderOverlay() {
+      const overlay = el("bboxOverlay");
+      overlay.innerHTML = "";
+      overlay.classList.toggle("hidden", !state.showOverlay);
+      if (!state.showOverlay) return;
+
+      const blocks = blocksForCurrentPage().filter((block) => Array.isArray(block.bbox) && block.bbox.length === 4);
+      if (!blocks.length) return;
+
+      blocks.forEach((block) => {
+        const [x1, y1, x2, y2] = normalizeBbox(block.bbox);
+        const box = document.createElement("div");
+        box.className = `bbox-box ${block.type}`;
+        box.style.left = `${x1 * 100}%`;
+        box.style.top = `${y1 * 100}%`;
+        box.style.width = `${(x2 - x1) * 100}%`;
+        box.style.height = `${(y2 - y1) * 100}%`;
+        box.innerHTML = `<span class="bbox-label">${block.type}: ${textPreview(block.content, 32)}</span>`;
+        overlay.appendChild(box);
+      });
+    }
+
+    function normalizeBbox(bbox) {
+      const values = bbox.map((value) => Number(value) || 0);
+      const maxValue = Math.max(...values);
+      if (maxValue <= 1.5) {
+        return values.map((value) => clamp(value, 0, 1));
+      }
+
+      // MinerU content_list bbox is a 0-1000 normalized page coordinate system.
+      return values.map((value) => clamp(value / 1000, 0, 1));
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function renderChunkList() {
+      const target = el("chunkList");
+      target.innerHTML = "";
+      (state.review?.chunks || []).forEach((chunk) => {
+        const item = document.createElement("div");
+        item.className = "chunk-item";
+        item.classList.toggle("selected", chunk.chunk_id === state.selectedChunkId);
+        item.innerHTML = `
+          <div class="chunk-head">
+            <span>#${chunk.chunk_index} · ${chunk.token_count} tokens · page ${chunk.metadata.page_number || "-"}</span>
+            <span class="status ${chunk.review_status}">${chunk.review_status}</span>
+          </div>
+          <div class="chunk-heading">${chunk.metadata.heading || chunk.metadata.section || "No heading"}</div>
+          <div class="chunk-excerpt">${textPreview(chunk.text)}</div>
+        `;
+        item.addEventListener("click", () => selectChunk(chunk.chunk_id));
+        target.appendChild(item);
+      });
+    }
+
+    function renderQuality() {
+      const report = state.review?.quality_report;
+      const target = el("qualityList");
+      target.innerHTML = "";
+      if (!report) return;
+      if (!report.issues.length) {
+        target.innerHTML = `<div class="issue">未发现自动质量问题。</div>`;
+        return;
+      }
+      report.issues.forEach((issue) => {
+        const item = document.createElement("div");
+        item.className = `issue ${issue.severity}`;
+        item.innerHTML = `
+          <div><strong>${issue.severity}</strong> · ${issue.code}</div>
+          <div>${issue.message}</div>
+          <div class="muted">chunk ${issue.chunk_index ?? "-"} · page ${issue.page_number ?? "-"}</div>
+        `;
+        if (issue.chunk_id) item.addEventListener("click", () => selectChunk(issue.chunk_id));
+        target.appendChild(item);
+      });
+    }
+
+    function renderChunkDetail(chunk) {
+      el("detailTitle").textContent = `Chunk ${chunk.chunk_index}`;
+      el("chunkText").value = chunk.text || "";
+      el("metadataText").value = JSON.stringify(chunk.metadata || {}, null, 2);
+      el("reviewComment").value = chunk.review_comment || "";
+      el("detailMeta").innerHTML = `
+        <div class="field-label">Chunk ID</div><div>${chunk.chunk_id}</div>
+        <div class="field-label">Status</div><div><span class="status ${chunk.review_status}">${chunk.review_status}</span></div>
+        <div class="field-label">Heading</div><div>${chunk.metadata.heading || "-"}</div>
+        <div class="field-label">Pages</div><div>${(chunk.metadata.page_numbers || [chunk.metadata.page_number]).filter(Boolean).join(", ") || "-"}</div>
+        <div class="field-label">Block Type</div><div>${chunk.metadata.block_type || "-"}</div>
+      `;
+    }
+
+    function setActiveTab(tab) {
+      state.activeTab = tab;
+      document.querySelectorAll(".tab").forEach((button) => {
+        button.classList.toggle("active", button.dataset.tab === tab);
+      });
+      el("treePanel").classList.toggle("hidden", tab !== "tree");
+      el("chunksPanel").classList.toggle("hidden", tab !== "chunks");
+      el("qualityPanel").classList.toggle("hidden", tab !== "quality");
+    }
+
+    function refreshMetrics() {
+      const report = state.review?.quality_report;
+      el("chunkCount").textContent = state.review?.chunks?.length || 0;
+      el("qualityScore").textContent = report ? report.quality_score : "-";
+      el("issueCount").textContent = report ? report.issue_count : 0;
+      if (state.review?.pdf_url) {
+        el("pdfHint").textContent = `共 ${state.review.page_count} 页`;
+      } else if (state.review?.source_text_url) {
+        el("pdfHint").textContent = "Markdown/Text 原文预览";
+      } else {
+        el("pdfHint").textContent = "当前文档没有可预览源文件";
+      }
+    }
+
+    async function loadDocument(documentId) {
+      state.review = await api(`/api/document-review/${encodeURIComponent(documentId)}`);
+      refreshMetrics();
+      renderTree();
+      renderChunkList();
+      renderQuality();
+      setPdfPage(1);
+      renderBlockList();
+      if (state.review.chunks.length) selectChunk(state.review.chunks[0].chunk_id);
+    }
+
+    async function loadDocuments() {
+      const payload = await api("/api/document-review");
+      state.documents = payload.documents || [];
+      const select = el("documentSelect");
+      select.innerHTML = "";
+      state.documents.forEach((doc) => {
+        const option = document.createElement("option");
+        option.value = doc.document_id;
+        option.textContent = `${doc.file_name} (${doc.chunk_count} chunks)`;
+        select.appendChild(option);
+      });
+      if (state.documents.length) {
+        const defaultDoc = state.documents.find((doc) => doc.file_type === "pdf") || state.documents[0];
+        select.value = defaultDoc.document_id;
+        await loadDocument(defaultDoc.document_id);
+      }
+    }
+
+    async function saveReview(status) {
+      if (!state.selectedChunkId) return;
+      let metadata;
+      try {
+        metadata = JSON.parse(el("metadataText").value || "{}");
+      } catch (error) {
+        alert("Metadata 不是合法 JSON");
+        return;
+      }
+
+      await api(`/api/chunk-review/${encodeURIComponent(state.selectedChunkId)}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          review_status: status,
+          review_comment: el("reviewComment").value,
+          text: el("chunkText").value,
+          metadata
+        })
+      });
+      await loadDocument(state.review.document_id);
+      selectChunk(state.selectedChunkId);
+    }
+
+    document.querySelectorAll(".tab").forEach((button) => {
+      button.addEventListener("click", () => setActiveTab(button.dataset.tab));
+    });
+
+    document.querySelectorAll("[data-status]").forEach((button) => {
+      button.addEventListener("click", () => saveReview(button.dataset.status));
+    });
+
+    el("documentSelect").addEventListener("change", (event) => loadDocument(event.target.value));
+    el("prevPage").addEventListener("click", () => setPdfPage(state.page - 1));
+    el("nextPage").addEventListener("click", () => setPdfPage(state.page + 1));
+    el("goPage").addEventListener("click", () => setPdfPage(el("pageInput").value));
+    el("sourceText").addEventListener("wheel", (event) => {
+      const source = el("sourceText");
+      if (source.classList.contains("hidden")) return;
+      source.scrollTop += event.deltaY;
+      source.scrollLeft += event.deltaX;
+      event.preventDefault();
+      event.stopPropagation();
+    }, { passive: false });
+    el("toggleBbox").addEventListener("click", () => {
+      state.showOverlay = !state.showOverlay;
+      el("toggleBbox").classList.toggle("primary", state.showOverlay);
+      renderOverlay();
+    });
+
+    loadDocuments().catch((error) => {
+      console.error(error);
+      alert(`加载失败: ${error.message}`);
+    });
+  </script>
+</body>
+</html>

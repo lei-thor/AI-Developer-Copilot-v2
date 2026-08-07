@@ -1,0 +1,73 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+.mypy_cache/
+.pytype/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Virtual environments and local package environments
+.venv/
+venv/
+env/
+ENV/
+.conda/
+
+# IDE and editor files
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+*.code-workspace
+*.sublime-project
+*.sublime-workspace
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs, temporary files, and local runtime state
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*.pid
+*.lock
+*.sqlite
+*.sqlite3
+*.db
+
+# Uploaded documents, MinerU artifacts, previews, and review state
+/files/*
+!/files/.gitkeep
+
+# Build and distribution outputs
+build/
+dist/
+*.egg-info/
+
+# Node/frontend dependencies and outputs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Jupyter and notebook checkpoints
+.ipynb_checkpoints/
+
