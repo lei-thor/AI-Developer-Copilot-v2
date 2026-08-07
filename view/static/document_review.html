@@ -192,8 +192,10 @@
 
     .bbox-overlay {
       position: absolute;
-      inset: 0;
+      left: 0;
+      top: 0;
       pointer-events: none;
+      z-index: 2;
     }
 
     .bbox-box {
@@ -579,6 +581,11 @@
                 <button class="btn" data-status="PENDING">置为待审</button>
               </div>
             </div>
+
+            <div class="detail-block">
+              <h3>Unified Chunk Schema</h3>
+              <textarea id="normalizedChunkText" class="metadata-editor" readonly></textarea>
+            </div>
           </section>
         </div>
       </section>
@@ -782,6 +789,7 @@
       const overlay = el("bboxOverlay");
       overlay.innerHTML = "";
       overlay.classList.toggle("hidden", !state.showOverlay);
+      syncOverlayToPageImage();
       if (!state.showOverlay) return;
 
       const blocks = blocksForCurrentPage().filter((block) => Array.isArray(block.bbox) && block.bbox.length === 4);
@@ -804,11 +812,37 @@
       const values = bbox.map((value) => Number(value) || 0);
       const maxValue = Math.max(...values);
       if (maxValue <= 1.5) {
-        return values.map((value) => clamp(value, 0, 1));
+        return normalizeBboxOrder(values.map((value) => clamp(value, 0, 1)));
       }
 
-      // MinerU content_list bbox is a 0-1000 normalized page coordinate system.
-      return values.map((value) => clamp(value / 1000, 0, 1));
+      return normalizeBboxOrder(values.map((value) => clamp(value / 1000, 0, 1)));
+    }
+
+    function syncOverlayToPageImage() {
+      const overlay = el("bboxOverlay");
+      const image = el("pdfPageImage");
+      if (!state.review?.pdf_url || image.classList.contains("hidden")) {
+        overlay.style.width = "";
+        overlay.style.height = "";
+        return;
+      }
+
+      const width = image.clientWidth || image.naturalWidth || 0;
+      const height = image.clientHeight || image.naturalHeight || 0;
+      overlay.style.left = `${image.offsetLeft || 0}px`;
+      overlay.style.top = `${image.offsetTop || 0}px`;
+      if (width && height) {
+        overlay.style.width = `${width}px`;
+        overlay.style.height = `${height}px`;
+      }
+    }
+
+    function normalizeBboxOrder(values) {
+      const x1 = Math.min(values[0], values[2]);
+      const y1 = Math.min(values[1], values[3]);
+      const x2 = Math.max(values[0], values[2]);
+      const y2 = Math.max(values[1], values[3]);
+      return [x1, y1, x2, y2];
     }
 
     function clamp(value, min, max) {
@@ -861,6 +895,7 @@
       el("detailTitle").textContent = `Chunk ${chunk.chunk_index}`;
       el("chunkText").value = chunk.text || "";
       el("metadataText").value = JSON.stringify(chunk.metadata || {}, null, 2);
+      el("normalizedChunkText").value = JSON.stringify(chunk.normalized_chunk || {}, null, 2);
       el("reviewComment").value = chunk.review_comment || "";
       el("detailMeta").innerHTML = `
         <div class="field-label">Chunk ID</div><div>${chunk.chunk_id}</div>
@@ -959,6 +994,8 @@
     el("prevPage").addEventListener("click", () => setPdfPage(state.page - 1));
     el("nextPage").addEventListener("click", () => setPdfPage(state.page + 1));
     el("goPage").addEventListener("click", () => setPdfPage(el("pageInput").value));
+    el("pdfPageImage").addEventListener("load", () => renderOverlay());
+    window.addEventListener("resize", () => renderOverlay());
     el("sourceText").addEventListener("wheel", (event) => {
       const source = el("sourceText");
       if (source.classList.contains("hidden")) return;

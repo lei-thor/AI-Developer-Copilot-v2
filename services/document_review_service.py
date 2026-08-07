@@ -11,6 +11,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal, Sequence
 
+from services.chunk_normalizer_service import ChunkNormalizerService
+
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +59,7 @@ class ReviewChunk:
     token_count: int
     text: str
     metadata: dict[str, Any]
+    normalized_chunk: dict[str, Any]
     review_status: ReviewStatus
     review_comment: str
     updated_time: str | None
@@ -475,6 +478,7 @@ class DocumentReviewService:
 
     def __init__(self, repository: DocumentReviewRepository | None = None) -> None:
         self.repository = repository or DocumentReviewRepository()
+        self.chunk_normalizer = ChunkNormalizerService()
 
     def list_documents(self) -> list[dict[str, Any]]:
         return self.repository.list_documents()
@@ -584,6 +588,13 @@ class DocumentReviewService:
             text = review_state.get("text") or raw.get("text") or ""
             if isinstance(review_state.get("metadata"), dict):
                 metadata.update(review_state["metadata"])
+            normalizable_raw = dict(raw)
+            normalizable_raw["text"] = str(text)
+            normalizable_raw["metadata"] = metadata
+            normalized_chunk = self.chunk_normalizer.normalize_to_dict(
+                normalizable_raw,
+                file_type=str(metadata.get("file_type") or ""),
+            )
 
             chunks.append(
                 ReviewChunk(
@@ -592,6 +603,7 @@ class DocumentReviewService:
                     token_count=int(raw.get("token_count") or metadata.get("token_count") or 0),
                     text=str(text),
                     metadata=metadata,
+                    normalized_chunk=normalized_chunk,
                     review_status=review_state.get("review_status", "PENDING"),
                     review_comment=review_state.get("review_comment", ""),
                     updated_time=review_state.get("updated_time"),
