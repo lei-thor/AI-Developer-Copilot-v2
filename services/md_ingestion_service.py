@@ -15,6 +15,7 @@ try:
 except ImportError:  # pragma: no cover - handled when Markdown ingestion is used.
     MarkdownIt = None  # type: ignore[assignment]
 
+from services.chunk_normalizer_service import ChunkNormalizerService, UnifiedChunk
 from services.milvus_service import MilvusConnectionService, get_milvus_service
 
 
@@ -88,7 +89,7 @@ class MarkdownIngestionResult:
     file_type: str
     title: str
     content_hash: str
-    chunks: list[MarkdownChunk]
+    chunks: list[UnifiedChunk]
     collection_name: str = DEFAULT_MARKDOWN_COLLECTION
     parsed_elements_count: int = 0
     cleaned_elements_count: int = 0
@@ -843,7 +844,7 @@ class MarkdownMilvusWriter:
 
     def write(
         self,
-        chunks: Sequence[MarkdownChunk],
+        chunks: Sequence[UnifiedChunk],
         vectors: Sequence[Sequence[float]],
     ) -> int:
         if not chunks:
@@ -895,27 +896,39 @@ class MarkdownMilvusWriter:
 
     def _build_row(
         self,
-        chunk: MarkdownChunk,
+        chunk: UnifiedChunk,
         vector: Sequence[float],
     ) -> dict[str, Any]:
-        metadata = dict(chunk.metadata)
+        metadata = chunk.metadata.to_dict()
+        document = metadata["document"]
+        structure = metadata["structure"]
+        source = metadata["source"]
+        content = metadata["content"]
+        processing = metadata["processing"]
+        page_numbers = source.get("page_numbers") or []
+        line_range = source.get("line_range") or []
+        content_types = content.get("types") or []
         return {
             "id": chunk.chunk_id,
             "vector": list(vector),
             "text": chunk.text,
-            "file_name": metadata.get("file_name", ""),
-            "file_type": metadata.get("file_type", MARKDOWN_FILE_TYPE),
-            "chapter": metadata.get("chapter", ""),
-            "section": metadata.get("section", ""),
+            "file_name": document.get("file_name", ""),
+            "file_type": document.get("file_type", MARKDOWN_FILE_TYPE),
+            "chapter": structure.get("chapter", ""),
+            "section": structure.get("section", ""),
+            "heading": structure.get("heading", ""),
+            "heading_path": " > ".join(str(value) for value in structure.get("heading_path", [])),
             "chunk_index": chunk.chunk_index,
-            "heading_path": metadata.get("heading_path", chunk.heading_path),
-            "block_type": metadata.get("block_type", ""),
+            "block_type": ",".join(str(value) for value in content_types),
             "token_count": chunk.token_count,
-            "line_start": metadata.get("line_start"),
-            "line_end": metadata.get("line_end"),
-            "parser": metadata.get("parser", "markdown-it-py"),
-            "language": metadata.get("language", ""),
-            "source_path": metadata.get("source_path", ""),
+            "page_number": page_numbers[0] if page_numbers else None,
+            "page_numbers": ",".join(str(value) for value in page_numbers),
+            "line_start": line_range[0] if line_range else None,
+            "line_end": line_range[-1] if line_range else None,
+            "parser": processing.get("parser", "markdown-it-py"),
+            "language": processing.get("language", ""),
+            "create_time": processing.get("create_time", ""),
+            "source_path": source.get("source_path", ""),
             "content_hash": chunk.content_hash,
             "metadata_json": json.dumps(metadata, ensure_ascii=False),
         }
@@ -940,6 +953,7 @@ class MarkdownIngestionService:
         cleaner: MarkdownCleaner | None = None,
         chunker: MarkdownChunkBuilder | None = None,
         auto_create_collection: bool = True,
+        chunk_normalizer: ChunkNormalizerService | None = None,
     ) -> None:
         self.parser = parser or MarkdownParser()
         self.cleaner = cleaner or MarkdownCleaner()
@@ -948,6 +962,7 @@ class MarkdownIngestionService:
             max_tokens=chunk_size or max_tokens,
             overlap_tokens=chunk_overlap or overlap_tokens,
         )
+        self.chunk_normalizer = chunk_normalizer or ChunkNormalizerService()
         self.embedding_generator = MarkdownEmbeddingGenerator(embedding_provider)
         self.writer = MarkdownMilvusWriter(
             collection_name=collection_name,
@@ -958,7 +973,8 @@ class MarkdownIngestionService:
     def ingest(self, file_path: str | Path) -> MarkdownIngestionResult:
         document = self.parse_document(file_path)
         cleaned = self.clean_document(document)
-        chunks = self.build_chunks(cleaned)
+        raw_chunks = self.build_chunks(cleaned)
+        chunks = self.normalize_chunks(raw_chunks)
         vectors = self.generate_embeddings(chunks)
         inserted_count = self.save_to_milvus(chunks, vectors)
         return MarkdownIngestionResult(
@@ -993,12 +1009,15 @@ class MarkdownIngestionService:
             raise RuntimeError(f"No valid chunks were generated from Markdown: {document.source_path}")
         return chunks
 
-    def generate_embeddings(self, chunks: Sequence[MarkdownChunk]) -> list[list[float]]:
+    def normalize_chunks(self, chunks: Sequence[MarkdownChunk]) -> list[UnifiedChunk]:
+        return self.chunk_normalizer.normalize_many(chunks, file_type=MARKDOWN_FILE_TYPE)
+
+    def generate_embeddings(self, chunks: Sequence[UnifiedChunk]) -> list[list[float]]:
         return self.embedding_generator.embed([chunk.text for chunk in chunks])
 
     def save_to_milvus(
         self,
-        chunks: Sequence[MarkdownChunk],
+        chunks: Sequence[UnifiedChunk],
         vectors: Sequence[Sequence[float]],
     ) -> int:
         return self.writer.write(chunks, vectors)

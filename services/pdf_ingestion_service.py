@@ -16,6 +16,7 @@ from typing import Any, Protocol, Sequence
 
 import requests
 
+from services.chunk_normalizer_service import ChunkNormalizerService, UnifiedChunk
 from services.embedding_service import get_embedding_service
 from services.milvus_service import MilvusConnectionService, get_milvus_service
 
@@ -1152,7 +1153,7 @@ class EmbeddingGenerator:
     def __init__(self, embedding_service: Any | None = None) -> None:
         self.embedding_service = embedding_service
 
-    def generate(self, chunks: Sequence[PdfChunk]) -> list[list[float]]:
+    def generate(self, chunks: Sequence[UnifiedChunk]) -> list[list[float]]:
         service = self.embedding_service or get_embedding_service()
         vectors = service.embed_documents([chunk.text for chunk in chunks])
         normalized = [list(vector) for vector in vectors]
@@ -1176,7 +1177,7 @@ class MilvusChunkWriter:
         self.milvus_service = milvus_service or get_milvus_service()
         self.auto_create_collection = auto_create_collection
 
-    def save(self, chunks: Sequence[PdfChunk], vectors: Sequence[Sequence[float]]) -> int:
+    def save(self, chunks: Sequence[UnifiedChunk], vectors: Sequence[Sequence[float]]) -> int:
         if not chunks:
             return 0
         if len(chunks) != len(vectors):
@@ -1217,24 +1218,34 @@ class MilvusChunkWriter:
             index_params=index_params,
         )
 
-    def _row(self, chunk: PdfChunk, vector: Sequence[float]) -> dict[str, Any]:
-        metadata = dict(chunk.metadata)
+    def _row(self, chunk: UnifiedChunk, vector: Sequence[float]) -> dict[str, Any]:
+        metadata = chunk.metadata.to_dict()
+        document = metadata["document"]
+        structure = metadata["structure"]
+        source = metadata["source"]
+        content = metadata["content"]
+        processing = metadata["processing"]
+        page_numbers = source.get("page_numbers") or []
+        content_types = content.get("types") or []
         return {
             "id": chunk.chunk_id,
             "vector": list(vector),
             "text": chunk.text,
-            "file_name": metadata.get("file_name", ""),
-            "file_type": metadata.get("file_type", PDF_FILE_TYPE),
-            "chapter": metadata.get("chapter", ""),
-            "section": metadata.get("section", ""),
-            "chunk_index": metadata.get("chunk_index"),
-            "page_number": metadata.get("page_number"),
-            "page_numbers": ",".join(str(value) for value in metadata.get("page_numbers", [])),
-            "block_type": metadata.get("block_type", ""),
-            "parser": metadata.get("parser", MINERU_PARSER_NAME),
-            "language": metadata.get("language", ""),
-            "create_time": metadata.get("create_time", ""),
-            "source_path": metadata.get("source_path", ""),
+            "file_name": document.get("file_name", ""),
+            "file_type": document.get("file_type", PDF_FILE_TYPE),
+            "chapter": structure.get("chapter", ""),
+            "section": structure.get("section", ""),
+            "heading": structure.get("heading", ""),
+            "heading_path": " > ".join(str(value) for value in structure.get("heading_path", [])),
+            "chunk_index": chunk.chunk_index,
+            "page_number": page_numbers[0] if page_numbers else None,
+            "page_numbers": ",".join(str(value) for value in page_numbers),
+            "block_type": ",".join(str(value) for value in content_types),
+            "parser": processing.get("parser", MINERU_PARSER_NAME),
+            "language": processing.get("language", ""),
+            "create_time": processing.get("create_time", ""),
+            "source_path": source.get("source_path", ""),
+            "token_count": chunk.token_count,
             "content_hash": chunk.content_hash,
             "metadata_json": json.dumps(metadata, ensure_ascii=False),
         }
@@ -1252,6 +1263,7 @@ class PDFIngestionService:
         embedding_generator: EmbeddingGenerator | None = None,
         vector_writer: MilvusChunkWriter | None = None,
         document_repository: DocumentRecordRepository | None = None,
+        chunk_normalizer: ChunkNormalizerService | None = None,
     ) -> None:
         self.parser = parser or MinerUClient()
         self.normalizer = normalizer or MinerUResultNormalizer()
@@ -1260,12 +1272,14 @@ class PDFIngestionService:
         self.embedding_generator = embedding_generator or EmbeddingGenerator()
         self.vector_writer = vector_writer or MilvusChunkWriter()
         self.document_repository = document_repository or NoopDocumentRecordRepository()
+        self.chunk_normalizer = chunk_normalizer or ChunkNormalizerService()
 
     def ingest(self, file_path: str | Path) -> PdfIngestionResult:
         started_at = datetime.now(timezone.utc)
         structured_document = self.parse_document(file_path)
         cleaned_document = self.clean_document(structured_document)
-        chunks = self.build_chunks(cleaned_document)
+        raw_chunks = self.build_chunks(cleaned_document)
+        chunks = self.normalize_chunks(raw_chunks)
         vectors = self.generate_embeddings(chunks)
         inserted_count = self.save_to_milvus(chunks, vectors)
         mysql_persisted = self.save_document_record(
@@ -1304,16 +1318,19 @@ class PDFIngestionService:
             raise RuntimeError(f"No chunks were generated for PDF: {document.source_path}")
         return chunks
 
-    def generate_embeddings(self, chunks: Sequence[PdfChunk]) -> list[list[float]]:
+    def normalize_chunks(self, chunks: Sequence[PdfChunk]) -> list[UnifiedChunk]:
+        return self.chunk_normalizer.normalize_many(chunks, file_type=PDF_FILE_TYPE)
+
+    def generate_embeddings(self, chunks: Sequence[UnifiedChunk]) -> list[list[float]]:
         return self.embedding_generator.generate(chunks)
 
-    def save_to_milvus(self, chunks: Sequence[PdfChunk], vectors: Sequence[Sequence[float]]) -> int:
+    def save_to_milvus(self, chunks: Sequence[UnifiedChunk], vectors: Sequence[Sequence[float]]) -> int:
         return self.vector_writer.save(chunks, vectors)
 
     def save_document_record(
         self,
         document: StructuredDocument,
-        chunks: Sequence[PdfChunk],
+        chunks: Sequence[UnifiedChunk],
         vectors: Sequence[Sequence[float]],
         inserted_count: int,
         started_at: datetime,

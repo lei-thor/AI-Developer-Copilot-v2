@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 import uuid
@@ -8,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol, Sequence
 
+from services.chunk_normalizer_service import ChunkNormalizerService, UnifiedChunk
 from services.milvus_service import MilvusConnectionService, get_milvus_service
 
 
@@ -561,7 +563,7 @@ class WordMilvusWriter:
         self.milvus_service = milvus_service or get_milvus_service()
         self.auto_create_collection = auto_create_collection
 
-    def write(self, chunks: Sequence[WordChunk], vectors: Sequence[Sequence[float]]) -> int:
+    def write(self, chunks: Sequence[UnifiedChunk], vectors: Sequence[Sequence[float]]) -> int:
         if not chunks:
             return 0
         if len(chunks) != len(vectors):
@@ -615,21 +617,39 @@ class WordMilvusWriter:
             index_params=index_params,
         )
 
-    def _build_row(self, chunk: WordChunk, vector: Sequence[float]) -> dict[str, Any]:
-        metadata = dict(chunk.metadata)
+    def _build_row(self, chunk: UnifiedChunk, vector: Sequence[float]) -> dict[str, Any]:
+        metadata = chunk.metadata.to_dict()
+        document = metadata["document"]
+        structure = metadata["structure"]
+        source = metadata["source"]
+        content = metadata["content"]
+        processing = metadata["processing"]
+        page_numbers = source.get("page_numbers") or []
+        line_range = source.get("line_range") or []
+        content_types = content.get("types") or []
         return {
             "id": chunk.chunk_id,
             "vector": list(vector),
             "text": chunk.text,
-            "file_name": metadata.get("file_name", ""),
-            "file_type": metadata.get("file_type", WORD_FILE_TYPE),
-            "chapter": metadata.get("chapter", ""),
-            "section": metadata.get("section", ""),
+            "file_name": document.get("file_name", ""),
+            "file_type": document.get("file_type", WORD_FILE_TYPE),
+            "chapter": structure.get("chapter", ""),
+            "section": structure.get("section", ""),
+            "heading": structure.get("heading", ""),
+            "heading_path": " > ".join(str(value) for value in structure.get("heading_path", [])),
             "chunk_index": chunk.chunk_index,
             "content_hash": chunk.content_hash,
-            "heading_path": metadata.get("heading_path", ""),
             "token_count": chunk.token_count,
-            "source_path": metadata.get("source_path", ""),
+            "page_number": page_numbers[0] if page_numbers else None,
+            "page_numbers": ",".join(str(value) for value in page_numbers),
+            "line_start": line_range[0] if line_range else None,
+            "line_end": line_range[-1] if line_range else None,
+            "block_type": ",".join(str(value) for value in content_types),
+            "parser": processing.get("parser", ""),
+            "language": processing.get("language", ""),
+            "create_time": processing.get("create_time", ""),
+            "source_path": source.get("source_path", ""),
+            "metadata_json": json.dumps(metadata, ensure_ascii=False),
         }
 
 
@@ -646,11 +666,13 @@ class WordIngestionService:
         chunker: WordChunker | None = None,
         metadata_builder: WordMetadataBuilder | None = None,
         auto_create_collection: bool = True,
+        chunk_normalizer: ChunkNormalizerService | None = None,
     ) -> None:
         self.parser = parser or WordParser()
         self.cleaner = cleaner or WordCleaner()
         self.chunker = chunker or WordChunker()
         self.metadata_builder = metadata_builder or WordMetadataBuilder()
+        self.chunk_normalizer = chunk_normalizer or ChunkNormalizerService()
         self.embedding_generator = WordEmbeddingGenerator(embedding_provider)
         self.writer = WordMilvusWriter(
             collection_name=collection_name,
@@ -668,8 +690,9 @@ class WordIngestionService:
             raise RuntimeError(f"No valid chunks were generated from Word file: {path}")
 
         chunks = self._attach_metadata(chunks, path)
-        vectors = self.embedding_generator.embed([chunk.text for chunk in chunks])
-        inserted_count = self.writer.write(chunks, vectors)
+        unified_chunks = self.normalize_chunks(chunks)
+        vectors = self.generate_embeddings(unified_chunks)
+        inserted_count = self.save_to_milvus(unified_chunks, vectors)
 
         return WordIngestionResult(
             source_path=str(path),
@@ -679,9 +702,9 @@ class WordIngestionService:
             document_hash=self._file_hash(path),
             parsed_elements_count=len(parsed_elements),
             cleaned_elements_count=len(cleaned_elements),
-            chunks_count=len(chunks),
+            chunks_count=len(unified_chunks),
             inserted_count=inserted_count,
-            chunk_ids=[chunk.chunk_id for chunk in chunks],
+            chunk_ids=[chunk.chunk_id for chunk in unified_chunks],
         )
 
     def prepare_chunks(self, file_path: str | Path) -> list[WordChunk]:
@@ -695,6 +718,19 @@ class WordIngestionService:
     def parse(self, file_path: str | Path) -> list[dict[str, Any]]:
         """Expose the parser output for debugging or API previews."""
         return [element.to_dict() for element in self.parser.parse(file_path)]
+
+    def normalize_chunks(self, chunks: Sequence[WordChunk]) -> list[UnifiedChunk]:
+        return self.chunk_normalizer.normalize_many(chunks, file_type=WORD_FILE_TYPE)
+
+    def generate_embeddings(self, chunks: Sequence[UnifiedChunk]) -> list[list[float]]:
+        return self.embedding_generator.embed([chunk.text for chunk in chunks])
+
+    def save_to_milvus(
+        self,
+        chunks: Sequence[UnifiedChunk],
+        vectors: Sequence[Sequence[float]],
+    ) -> int:
+        return self.writer.write(chunks, vectors)
 
     def _attach_metadata(self, chunks: Sequence[WordChunk], path: Path) -> list[WordChunk]:
         enriched: list[WordChunk] = []
