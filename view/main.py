@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from view.document_review_api import router as document_review_router
+from view.rag_api import router as rag_router
 from view.search_api import router as search_router
 from view.upload_api import router as upload_router
 
@@ -29,6 +30,7 @@ app.add_middleware(
 app.include_router(document_review_router)
 app.include_router(upload_router)
 app.include_router(search_router)
+app.include_router(rag_router)
 app.mount("/static", StaticFiles(directory=STATIC_ROOT), name="static")
 
 
