@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>对话 | 人工智能开发助手</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body data-page="chat">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/index.html"><span class="brand-mark">智</span><span class="brand-copy"><span class="brand-title">人工智能开发助手</span><span class="brand-subtitle">开发知识工作台</span></span></a>
+      <div class="workspace-switcher"><span class="workspace-name">开发知识库</span><span class="workspace-status" title="系统运行正常"></span></div>
+      <p class="nav-label">工作区</p>
+      <nav class="nav-list" aria-label="主导航">
+        <a class="nav-link" data-nav="chat" href="/chat.html"><span class="nav-icon">聊</span><span>对话</span></a>
+        <a class="nav-link" data-nav="knowledge" href="/knowledge.html"><span class="nav-icon">知</span><span>知识库</span></a>
+        <a class="nav-link" data-nav="documents" href="/documents.html"><span class="nav-icon">文</span><span>文档</span></a>
+        <a class="nav-link" data-nav="review" href="/review.html"><span class="nav-icon">审</span><span>审核</span></a>
+        <a class="nav-link" data-nav="settings" href="/settings.html"><span class="nav-icon">设</span><span>设置</span></a>
+      </nav>
+      <div class="sidebar-spacer"></div><div class="sidebar-footer"><div class="system-status">系统运行正常</div><div class="user-row"><span class="avatar">本</span><span>本地工作区</span></div></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><div class="topbar-left"><button class="mobile-menu" type="button" data-menu-toggle aria-label="打开导航">=</button><div class="breadcrumb"><strong>工作区</strong><span> / 对话</span></div></div><div class="topbar-right"><span class="topbar-status">问答接口已就绪</span></div></header>
+      <div class="page">
+        <section class="page-heading">
+          <div><div class="eyebrow">知识库问答助手</div><h1>对话</h1><p class="lead">从已索引的开发文档中寻找上下文，构建可靠的技术回答。</p></div>
+          <div class="button-row"><button class="button secondary" type="button" data-placeholder-action="新会话功能将在聊天接口接入后启用。"><span class="button-icon">+</span>新会话</button></div>
+        </section>
+        <section class="chat-layout">
+          <div class="chat-surface">
+            <div class="chat-messages" data-chat-messages>
+              <div class="chat-welcome">
+                <div class="empty-icon">问</div>
+                <h2>向开发知识库提问</h2>
+                <p>可以从大模型、PyTorch、YOLO 或项目内部文档开始提问。</p>
+              </div>
+            </div>
+            <form class="composer" data-chat-form>
+              <textarea data-chat-input rows="1" placeholder="请输入你想询问的知识库问题..." aria-label="问题输入框"></textarea>
+              <button class="button primary" type="submit"><span class="button-icon">↑</span>发送</button>
+            </form>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <div class="toast" data-toast></div>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

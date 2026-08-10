@@ -34,6 +34,25 @@ app.include_router(rag_router)
 app.mount("/static", StaticFiles(directory=STATIC_ROOT), name="static")
 
 
+@app.get("/")
+def index_page() -> FileResponse:
+    return FileResponse(
+        VIEW_ROOT / "index.html",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/{page_name}.html")
+def workspace_page(page_name: str) -> FileResponse:
+    allowed_pages = {"index", "chat", "knowledge", "documents", "review", "settings"}
+    if page_name not in allowed_pages:
+        return FileResponse(VIEW_ROOT / "index.html", headers={"Cache-Control": "no-store"})
+    return FileResponse(
+        VIEW_ROOT / f"{page_name}.html",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}

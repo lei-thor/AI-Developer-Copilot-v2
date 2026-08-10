@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>知识库 | 人工智能开发助手</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body data-page="knowledge">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/index.html"><span class="brand-mark">智</span><span class="brand-copy"><span class="brand-title">人工智能开发助手</span><span class="brand-subtitle">开发知识工作台</span></span></a>
+      <div class="workspace-switcher"><span class="workspace-name">开发知识库</span><span class="workspace-status" title="系统运行正常"></span></div>
+      <p class="nav-label">工作区</p>
+      <nav class="nav-list" aria-label="主导航">
+        <a class="nav-link" data-nav="chat" href="/chat.html"><span class="nav-icon">聊</span><span>对话</span></a>
+        <a class="nav-link" data-nav="knowledge" href="/knowledge.html"><span class="nav-icon">知</span><span>知识库</span></a>
+        <a class="nav-link" data-nav="documents" href="/documents.html"><span class="nav-icon">文</span><span>文档</span></a>
+        <a class="nav-link" data-nav="review" href="/review.html"><span class="nav-icon">审</span><span>审核</span></a>
+        <a class="nav-link" data-nav="settings" href="/settings.html"><span class="nav-icon">设</span><span>设置</span></a>
+      </nav>
+      <div class="sidebar-spacer"></div><div class="sidebar-footer"><div class="system-status">系统运行正常</div><div class="user-row"><span class="avatar">本</span><span>本地工作区</span></div></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><div class="topbar-left"><button class="mobile-menu" type="button" data-menu-toggle aria-label="打开导航">=</button><div class="breadcrumb"><strong>工作区</strong><span> / 知识库</span></div></div><div class="topbar-right"><span class="topbar-status">向量库已连接</span></div></header>
+      <div class="page">
+        <section class="page-heading"><div><div class="eyebrow">知识库</div><h1>开发知识库</h1><p class="lead">统一存储大模型、PyTorch、YOLO 以及项目文档的向量知识。</p></div><div class="button-row"><a class="button primary" href="/documents.html"><span class="button-icon">+</span>添加文档</a></div></section>
+        <section class="stats-grid">
+          <div class="stat-card"><div class="stat-label">文档数量</div><div class="stat-value">4</div><div class="stat-detail">当前已入库文档</div></div>
+          <div class="stat-card"><div class="stat-label">向量片段</div><div class="stat-value">442</div><div class="stat-detail">统一片段结构</div></div>
+          <div class="stat-card"><div class="stat-label">集合状态</div><div class="stat-value">已就绪</div><div class="stat-detail">余弦索引已加载</div></div>
+        </section>
+        <div class="two-column" style="margin-top:16px;">
+          <section class="panel">
+            <div class="panel-title"><h2>向量集合</h2><span>当前快照</span></div>
+            <div class="status-line"><span class="status-name">集合名称</span><span class="status-value">developer_knowledge_chunks</span></div>
+            <div class="status-line"><span class="status-name">向量维度</span><span class="status-value">1024</span></div>
+            <div class="status-line"><span class="status-name">检索方式</span><span class="status-value">余弦相似度</span></div>
+            <div class="status-line"><span class="status-name">知识库</span><span class="status-value online">默认知识库</span></div>
+          </section>
+          <section class="panel">
+            <div class="panel-title"><h2>支持内容</h2><span>入库流程</span></div>
+            <div class="button-row"><span class="tag cyan">PDF · MinerU</span><span class="tag amber">Word · python-docx</span><span class="tag">Markdown · 结构解析</span></div>
+            <p class="muted" style="margin:22px 0 0; line-height:1.7;">所有文档经过结构恢复、语义切分、结构标准化和向量化后进入同一个向量集合。</p>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+  <div class="toast" data-toast></div>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

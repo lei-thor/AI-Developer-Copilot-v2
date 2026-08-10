@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>人工智能开发助手</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body data-page="home">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/index.html">
+        <span class="brand-mark">智</span>
+        <span class="brand-copy">
+          <span class="brand-title">人工智能开发助手</span>
+          <span class="brand-subtitle">开发知识工作台</span>
+        </span>
+      </a>
+      <div class="workspace-switcher">
+        <span class="workspace-name">开发知识库</span>
+        <span class="workspace-status" title="系统运行正常"></span>
+      </div>
+      <p class="nav-label">工作区</p>
+      <nav class="nav-list" aria-label="主导航">
+        <a class="nav-link" data-nav="chat" href="/chat.html"><span class="nav-icon">聊</span><span>对话</span></a>
+        <a class="nav-link" data-nav="knowledge" href="/knowledge.html"><span class="nav-icon">知</span><span>知识库</span></a>
+        <a class="nav-link" data-nav="documents" href="/documents.html"><span class="nav-icon">文</span><span>文档</span></a>
+        <a class="nav-link" data-nav="review" href="/review.html"><span class="nav-icon">审</span><span>审核</span></a>
+        <a class="nav-link" data-nav="settings" href="/settings.html"><span class="nav-icon">设</span><span>设置</span></a>
+      </nav>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-footer">
+        <div class="system-status">系统运行正常</div>
+        <div class="user-row"><span class="avatar">本</span><span>本地工作区</span></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu" type="button" data-menu-toggle aria-label="打开导航">=</button>
+          <div class="breadcrumb"><strong>工作区</strong><span> / 总览</span></div>
+        </div>
+        <div class="topbar-right"><span class="topbar-status">接口运行中</span></div>
+      </header>
+
+      <div class="page">
+        <section class="page-heading">
+          <div>
+            <div class="eyebrow">开发知识工作台</div>
+            <h1>人工智能开发助手</h1>
+            <p class="lead">智能知识库与问答助手平台，用于整理大模型、深度学习框架、目标检测等开发知识，并把它们转化为可检索、可引用的上下文。</p>
+          </div>
+          <div class="button-row">
+            <a class="button primary" href="/chat.html"><span class="button-icon">+</span>开始对话</a>
+            <a class="button secondary" href="/documents.html">查看文档</a>
+          </div>
+        </section>
+
+        <section class="overview-grid" aria-label="工作台能力">
+          <a class="feature-card" href="/knowledge.html">
+            <span class="feature-icon">知</span>
+            <h3>知识库管理</h3>
+            <p>查看向量集合、文档规模与当前索引状态。</p>
+          </a>
+          <a class="feature-card" href="/documents.html">
+            <span class="feature-icon">文</span>
+            <h3>文档解析</h3>
+            <p>支持 PDF、Word 与 Markdown 的结构化入库流程。</p>
+          </a>
+          <a class="feature-card" href="/chat.html">
+            <span class="feature-icon">问</span>
+            <h3>检索增强问答</h3>
+            <p>从知识库召回上下文，再由对话模型生成带来源的答案。</p>
+          </a>
+          <a class="feature-card" href="/review.html">
+            <span class="feature-icon">审</span>
+            <h3>智能体能力</h3>
+            <p>为后续工具调用、任务规划与多步骤开发协作预留入口。</p>
+          </a>
+        </section>
+
+        <div class="section-heading">
+          <h2>工作台概览</h2>
+          <a href="/knowledge.html">查看知识库</a>
+        </div>
+        <section class="stats-grid">
+          <div class="stat-card"><div class="stat-label">已入库文档</div><div class="stat-value">4</div><div class="stat-detail">PDF / Word / Markdown</div></div>
+          <div class="stat-card"><div class="stat-label">向量片段</div><div class="stat-value">442</div><div class="stat-detail">developer_knowledge_chunks</div></div>
+          <div class="stat-card"><div class="stat-label">检索状态</div><div class="stat-value">已就绪</div><div class="stat-detail">余弦相似度 · 前若干条召回</div></div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <div class="toast" data-toast></div>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

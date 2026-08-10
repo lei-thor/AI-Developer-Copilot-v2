@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>审核 | 人工智能开发助手</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body data-page="review">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/index.html"><span class="brand-mark">智</span><span class="brand-copy"><span class="brand-title">人工智能开发助手</span><span class="brand-subtitle">开发知识工作台</span></span></a>
+      <div class="workspace-switcher"><span class="workspace-name">开发知识库</span><span class="workspace-status" title="系统运行正常"></span></div>
+      <p class="nav-label">工作区</p>
+      <nav class="nav-list" aria-label="主导航">
+        <a class="nav-link" data-nav="chat" href="/chat.html"><span class="nav-icon">聊</span><span>对话</span></a>
+        <a class="nav-link" data-nav="knowledge" href="/knowledge.html"><span class="nav-icon">知</span><span>知识库</span></a>
+        <a class="nav-link" data-nav="documents" href="/documents.html"><span class="nav-icon">文</span><span>文档</span></a>
+        <a class="nav-link" data-nav="review" href="/review.html"><span class="nav-icon">审</span><span>审核</span></a>
+        <a class="nav-link" data-nav="settings" href="/settings.html"><span class="nav-icon">设</span><span>设置</span></a>
+      </nav>
+      <div class="sidebar-spacer"></div><div class="sidebar-footer"><div class="system-status">系统运行正常</div><div class="user-row"><span class="avatar">本</span><span>本地工作区</span></div></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><div class="topbar-left"><button class="mobile-menu" type="button" data-menu-toggle aria-label="打开导航">=</button><div class="breadcrumb"><strong>工作区</strong><span> / 审核</span></div></div><div class="topbar-right"><span class="topbar-status">审核服务已就绪</span></div></header>
+      <div class="page">
+        <section class="page-heading"><div><div class="eyebrow">文档理解</div><h1>审核</h1><p class="lead">检查解析结构、知识片段边界和统一元数据，为高质量检索提供反馈。</p></div><div class="button-row"><a class="button primary" href="/document-review">打开审核工作台</a></div></section>
+        <section class="panel">
+          <div class="panel-title"><h2>审核预览</h2><span>页面布局占位</span></div>
+          <div class="review-preview">
+            <div class="review-canvas">
+              <div class="paper" aria-label="文档预览">
+                <div class="paper-line title"></div><div class="paper-line"></div><div class="paper-line short"></div>
+                <div class="paper-table"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="paper-line"></div><div class="paper-line short"></div><div class="paper-line"></div>
+              </div>
+            </div>
+            <div class="review-inspector">
+              <div class="inspector-row"><span class="inspector-label">文档</span><span class="inspector-value">Swin Trans 论文的全文翻译.pdf</span></div>
+              <div class="inspector-row"><span class="inspector-label">解析器</span><span class="inspector-value">MinerU 精准解析接口</span></div>
+              <div class="inspector-row"><span class="inspector-label">当前片段</span><span class="inspector-value">第 15 个片段 · 739 个词元</span></div>
+              <div class="inspector-row"><span class="inspector-label">标题结构</span><span class="inspector-value">实验 / 基于 ImageNet-1K 的图像分类</span></div>
+              <div class="inspector-row"><span class="inspector-label">元数据</span><span class="inspector-value"><span class="tag cyan">统一结构</span></span></div>
+            </div>
+          </div>
+        </section>
+        <section class="three-column" style="margin-top:16px;">
+          <div class="stat-card"><div class="stat-label">解析块数量</div><div class="stat-value">1,286</div><div class="stat-detail">标题 · 表格 · 段落</div></div>
+          <div class="stat-card"><div class="stat-label">审核片段</div><div class="stat-value">42</div><div class="stat-detail">人工审核队列</div></div>
+          <div class="stat-card"><div class="stat-label">质量信号</div><div class="stat-value">良好</div><div class="stat-detail">结构关系已保留</div></div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <div class="toast" data-toast></div>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
