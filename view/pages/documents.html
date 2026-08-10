@@ -24,26 +24,44 @@
     <main class="main">
       <header class="topbar"><div class="topbar-left"><button class="mobile-menu" type="button" data-menu-toggle aria-label="打开导航">=</button><div class="breadcrumb"><strong>工作区</strong><span> / 文档</span></div></div><div class="topbar-right"><span class="topbar-status">上传接口已就绪</span></div></header>
       <div class="page">
-        <section class="page-heading"><div><div class="eyebrow">文档工作区</div><h1>文档</h1><p class="lead">管理进入知识库的原始文档，以及它们对应的解析和审核状态。</p></div></section>
+        <section class="page-heading">
+          <div>
+            <div class="eyebrow">文档管理</div>
+            <h1>文档管理</h1>
+            <p class="lead">管理知识库中的所有文档，上传新的 PDF、Word 或 Markdown 文件，并查看入库处理状态。</p>
+          </div>
+        </section>
+
         <section class="panel">
-          <div class="panel-title"><h2>上传文档</h2><span>接口接入预留</span></div>
-          <div class="upload-zone">
+          <div class="panel-title"><h2>上传文档</h2><span>接入 /api/knowledge/files/upload</span></div>
+          <div class="upload-zone" data-upload-zone>
+            <input class="visually-hidden" data-file-input type="file" accept=".pdf,.docx,.md,.markdown" multiple />
             <div>
               <div class="empty-icon">+</div>
               <strong>拖拽文件到这里</strong>
-              <p>支持 PDF、Word、Markdown。当前页面仅展示上传区域，接口接入后将保存到统一知识库。</p>
-              <button class="button primary" type="button" data-placeholder-action="文件上传接口已完成，前端上传交互将在下一阶段接入。">选择文件</button>
+              <p>或点击下方按钮选择文件。支持 PDF、Word、Markdown，上传后会自动进入解析、切分、向量化和入库流程。</p>
+              <div class="upload-actions">
+                <button class="button primary" type="button" data-upload-button>选择文件</button>
+                <span class="upload-hint">支持 .pdf / .docx / .md / .markdown</span>
+              </div>
+              <div class="upload-status waiting" data-upload-status>等待上传</div>
             </div>
           </div>
         </section>
+
         <section class="panel">
-          <div class="panel-title"><h2>已索引文件</h2><span>4 个文档</span></div>
-          <div class="file-list">
-            <div class="file-item"><div class="file-info"><span class="file-type">PDF</span><div><div class="file-name">Swin Trans 论文的全文翻译.pdf</div><div class="file-meta">42 个片段 · MinerU · 已索引</div></div></div><span class="tag cyan">已就绪</span></div>
-            <div class="file-item"><div class="file-info"><span class="file-type">PDF</span><div><div class="file-name">03.深度学习.全连接神经网络.pdf</div><div class="file-meta">259 个片段 · MinerU · 已索引</div></div></div><span class="tag cyan">已就绪</span></div>
-            <div class="file-item"><div class="file-info"><span class="file-type">DOCX</span><div><div class="file-name">Numpy.docx</div><div class="file-meta">67 个片段 · python-docx · 已索引</div></div></div><span class="tag cyan">已就绪</span></div>
-            <div class="file-item"><div class="file-info"><span class="file-type">MD</span><div><div class="file-name">02.深度学习.Torch框架.md</div><div class="file-meta">74 个片段 · Markdown 结构解析 · 已索引</div></div></div><span class="tag cyan">已就绪</span></div>
+          <div class="panel-title">
+            <h2>文档列表</h2>
+            <span data-document-count>正在读取文档列表</span>
           </div>
+          <div class="document-toolbar">
+            <div>
+              <strong>知识库文档</strong>
+              <p>服务端文档列表接口预留为 GET /api/knowledge/files；当前会展示本浏览器最近上传记录。</p>
+            </div>
+            <button class="button secondary" type="button" data-refresh-documents>刷新列表</button>
+          </div>
+          <div class="document-list" data-document-list></div>
         </section>
       </div>
     </main>

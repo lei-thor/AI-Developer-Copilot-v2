@@ -15,6 +15,7 @@ from view.upload_api import router as upload_router
 
 VIEW_ROOT = Path(__file__).resolve().parent
 STATIC_ROOT = VIEW_ROOT / "static"
+PAGES_ROOT = VIEW_ROOT / "pages"
 
 
 app = FastAPI(title="AI Developer Copilot")
@@ -37,7 +38,7 @@ app.mount("/static", StaticFiles(directory=STATIC_ROOT), name="static")
 @app.get("/")
 def index_page() -> FileResponse:
     return FileResponse(
-        VIEW_ROOT / "index.html",
+        PAGES_ROOT / "index.html",
         headers={"Cache-Control": "no-store"},
     )
 
@@ -46,9 +47,9 @@ def index_page() -> FileResponse:
 def workspace_page(page_name: str) -> FileResponse:
     allowed_pages = {"index", "chat", "knowledge", "documents", "review", "settings"}
     if page_name not in allowed_pages:
-        return FileResponse(VIEW_ROOT / "index.html", headers={"Cache-Control": "no-store"})
+        return FileResponse(PAGES_ROOT / "index.html", headers={"Cache-Control": "no-store"})
     return FileResponse(
-        VIEW_ROOT / f"{page_name}.html",
+        PAGES_ROOT / f"{page_name}.html",
         headers={"Cache-Control": "no-store"},
     )
 
